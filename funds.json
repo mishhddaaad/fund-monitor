@@ -4,6 +4,8 @@
     "fund_name": "易方达沪深300ETF联接A",
     "etf_market": "sh",
     "etf_code": "510300",
+    "legacy_fund_codes": [],
+    "initial_etf_ref_price": 3.912,
     "total_shares": 10,
     "trigger_pct": 4.0,
     "enable_sell_signal": true,

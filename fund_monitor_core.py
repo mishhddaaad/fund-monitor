@@ -64,6 +64,7 @@ def load_fund_list() -> list[dict]:
         fund.setdefault("enable_sell_signal", True)
         fund.setdefault("sell_profit_trigger_pct", 15.0)
         fund.setdefault("sell_drawdown_pct", 4.0)
+        fund.setdefault("legacy_fund_codes", [])
     return funds
 
 
@@ -183,6 +184,24 @@ def save_all_states(states: dict) -> None:
 
 def get_fund_state(states: dict, fund_code: str) -> dict:
     return normalize_state(states.get(fund_code))
+
+
+def migrate_legacy_state(states: dict, fund_cfg: dict) -> bool:
+    """Move saved state from old fund codes to the configured code.
+
+    This is useful when switching between A/C share classes of the same feeder
+    fund while keeping the same ETF-based trigger anchor.
+    """
+    code = fund_cfg["fund_code"]
+    if code in states:
+        return False
+
+    for legacy_code in fund_cfg.get("legacy_fund_codes") or []:
+        if legacy_code in states:
+            states[code] = normalize_state(states.pop(legacy_code))
+            log(f"[{code}] 已从旧基金代码 {legacy_code} 迁移状态")
+            return True
+    return False
 
 
 def held_shares(state: dict) -> int:
@@ -475,6 +494,7 @@ def run_analysis() -> tuple[list[dict], dict]:
     changed = False
     current_time = now_cn()
     for fund in funds:
+        changed = migrate_legacy_state(states, fund) or changed
         result, state_changed = analyze_one(fund, states, current_time=current_time)
         results.append(result)
         changed = changed or state_changed

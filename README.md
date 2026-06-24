@@ -80,6 +80,8 @@ flowchart LR
     "fund_name": "易方达沪深300ETF联接A",
     "etf_market": "sh",
     "etf_code": "510300",
+    "legacy_fund_codes": [],
+    "initial_etf_ref_price": 3.912,
     "total_shares": 10,
     "trigger_pct": 4.0,
     "enable_sell_signal": true,
@@ -97,12 +99,14 @@ flowchart LR
 | `fund_name` | 通知中显示的名称 |
 | `etf_market` | `sh`、`sz` 或 `bj` |
 | `etf_code` | 对应场内 ETF 代码 |
+| `legacy_fund_codes` | 可选；从 A/C 类或旧代码迁移时填写旧基金代码，自动保留原状态 |
+| `initial_etf_ref_price` | 可选；首次运行或状态为空时使用的 ETF 初始基准价 |
 | `total_shares` | 最大分批份数 |
 | `trigger_pct` | 每档买入跌幅 |
 | `sell_profit_trigger_pct` | 进入止盈观察的收益率 |
 | `sell_drawdown_pct` | 从观察高点回撤多少时提醒 |
 
-请自行核实联接基金与 ETF 的对应关系。
+请自行核实联接基金与 ETF 的对应关系。若从 A 类切换到 C 类、或同一策略更换场外代码，可以把旧代码写入 `legacy_fund_codes`，例如 `"legacy_fund_codes": ["021707"]`。
 
 ### 2. 配置 PushPlus
 

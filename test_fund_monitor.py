@@ -78,6 +78,24 @@ class AnalyzeOneTests(unittest.TestCase):
         self.assertFalse(result["should_buy"])
         self.assertIsNotNone(result["skipped_reason"])
 
+    def test_migrate_legacy_state_for_share_class_switch(self):
+        states = {
+            "000001": {
+                "anchor_etf_price": 1.043,
+                "total_shares_bought": 2,
+                "buy_history": [{"date": "2026-01-01", "etf_price": 1.0}],
+            }
+        }
+        cfg = {**FUND, "fund_code": "000002", "legacy_fund_codes": ["000001"]}
+
+        changed = core.migrate_legacy_state(states, cfg)
+
+        self.assertTrue(changed)
+        self.assertNotIn("000001", states)
+        self.assertIn("000002", states)
+        self.assertEqual(states["000002"]["anchor_etf_price"], 1.043)
+        self.assertEqual(states["000002"]["total_shares_bought"], 2)
+
     @patch("fund_monitor_core.fetch_fund_last_nav", return_value={})
     @patch("fund_monitor_core.fetch_etf_realtime")
     def test_sell_after_15_percent_then_4_percent_drawdown(self, mock_quote, _mock_nav):
