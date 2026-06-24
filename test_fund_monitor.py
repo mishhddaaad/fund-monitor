@@ -5,6 +5,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 import fund_monitor_core as core
+import fund_monitor_pushplus as pushplus
 
 
 CN_TZ = ZoneInfo("Asia/Shanghai")
@@ -145,6 +146,39 @@ class AnalyzeOneTests(unittest.TestCase):
         }
         url = core.build_feedback_url(result)
         self.assertTrue(url.startswith("https://feedback.example.com/feedback?t="))
+
+
+class NotificationDecisionTests(unittest.TestCase):
+    @patch.dict(os.environ, {"GITHUB_EVENT_NAME": "schedule"}, clear=False)
+    @patch("fund_monitor_pushplus.now_cn")
+    def test_late_schedule_suppresses_trade_notification(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 23, 18, 0, tzinfo=CN_TZ)
+        results = [
+            {
+                "fund_cfg": {"fund_code": "000000"},
+                "should_buy": True,
+                "should_sell": False,
+                "error": None,
+            }
+        ]
+
+        self.assertFalse(pushplus.should_send_notification(results, {"000000": {}}))
+        self.assertIn("15:05", pushplus.notification_skip_reason(results, {"000000": {}}))
+
+    @patch.dict(os.environ, {"GITHUB_EVENT_NAME": "schedule"}, clear=False)
+    @patch("fund_monitor_pushplus.now_cn")
+    def test_late_schedule_still_sends_runtime_errors(self, mock_now):
+        mock_now.return_value = datetime(2026, 6, 23, 18, 0, tzinfo=CN_TZ)
+        results = [
+            {
+                "fund_cfg": {"fund_code": "000000"},
+                "should_buy": False,
+                "should_sell": False,
+                "error": "boom",
+            }
+        ]
+
+        self.assertTrue(pushplus.should_send_notification(results, {"000000": {}}))
 
 
 if __name__ == "__main__":

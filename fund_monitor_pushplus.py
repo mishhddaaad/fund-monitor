@@ -5,6 +5,7 @@ import html
 import json
 import os
 import urllib.request
+from datetime import time
 
 from fund_monitor_core import (
     append_daily_log,
@@ -20,6 +21,26 @@ from fund_monitor_core import (
 
 
 PUSHPLUS_TOKEN = os.environ.get("PUSHPLUS_TOKEN", "").strip()
+DEFAULT_LATEST_SCHEDULE_PUSH_TIME = time(15, 5)
+
+
+def _parse_hhmm(value: str) -> time:
+    hour_text, minute_text = value.split(":", 1)
+    return time(int(hour_text), int(minute_text))
+
+
+def is_late_scheduled_run() -> bool:
+    if os.environ.get("GITHUB_EVENT_NAME") != "schedule":
+        return False
+
+    configured = os.environ.get("LATEST_SCHEDULE_PUSH_TIME", "15:05").strip()
+    if not configured:
+        return False
+    try:
+        latest = _parse_hhmm(configured)
+    except (TypeError, ValueError):
+        latest = DEFAULT_LATEST_SCHEDULE_PUSH_TIME
+    return now_cn().time() > latest
 
 
 def has_actionable_notice(results: list[dict]) -> bool:
@@ -30,17 +51,23 @@ def has_actionable_notice(results: list[dict]) -> bool:
 
 
 def should_send_notification(results: list[dict], states: dict) -> bool:
+    return notification_skip_reason(results, states) is None
+
+
+def notification_skip_reason(results: list[dict], states: dict) -> str | None:
     if os.environ.get("GITHUB_EVENT_NAME") != "schedule":
-        return True
+        return None
+    if is_late_scheduled_run() and not has_runtime_error(results):
+        return "[??] ??????????? 15:05?????????????????"
     if has_actionable_notice(results):
-        return True
+        return None
 
     today = now_cn().date().isoformat()
     for result in results:
         code = result["fund_cfg"]["fund_code"]
         if states.get(code, {}).get("last_status_push_date") != today:
-            return True
-    return False
+            return None
+    return "[??] ?????????????????"
 
 
 def mark_status_notification_sent(results: list[dict], states: dict) -> None:
@@ -224,7 +251,8 @@ def main() -> int:
     try:
         results, states = run_analysis()
         append_daily_log(results)
-        if should_send_notification(results, states):
+        skip_reason = notification_skip_reason(results, states)
+        if skip_reason is None:
             notification_ok = send_pushplus(results)
             if notification_ok and not has_actionable_notice(results):
                 mark_status_notification_sent(results, states)
