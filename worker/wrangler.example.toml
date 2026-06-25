@@ -4,6 +4,13 @@ compatibility_date = "2026-06-23"
 workers_dev = true
 preview_urls = false
 
+[triggers]
+crons = ["25,40,50 6 * * 1-5"]
+
+[vars]
+GITHUB_REPOSITORY = "your-name/your-private-fork"
+GITHUB_DISPATCH_EVENT = "fund-monitor-cron"
+
 [[kv_namespaces]]
 binding = "STATE_KV"
 id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"

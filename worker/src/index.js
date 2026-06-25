@@ -114,6 +114,48 @@ async function saveStates(env, states) {
   await env.STATE_KV.put(STATE_KEY, JSON.stringify(states));
 }
 
+async function dispatchGitHubWorkflow(env, payload = {}) {
+  const repository = env.GITHUB_REPOSITORY;
+  const token = env.GITHUB_DISPATCH_TOKEN;
+  if (!repository || !token) {
+    return {
+      ok: false,
+      skipped: true,
+      message: "GITHUB_REPOSITORY or GITHUB_DISPATCH_TOKEN is not configured",
+    };
+  }
+
+  const response = await fetch(`https://api.github.com/repos/${repository}/dispatches`, {
+    method: "POST",
+    headers: {
+      accept: "application/vnd.github+json",
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+      "user-agent": "fund-monitor-cloudflare-cron",
+      "x-github-api-version": "2022-11-28",
+    },
+    body: JSON.stringify({
+      event_type: env.GITHUB_DISPATCH_EVENT || "fund-monitor-cron",
+      client_payload: {
+        source: "cloudflare-cron",
+        scheduled_time: payload.scheduledTime || Date.now(),
+      },
+    }),
+  });
+
+  if (response.status === 204) {
+    return { ok: true, dispatched: true, repository };
+  }
+
+  const detail = await response.text();
+  return {
+    ok: false,
+    status: response.status,
+    repository,
+    error: detail.slice(0, 500),
+  };
+}
+
 function authorized(request, env) {
   const expected = env.STATE_API_TOKEN;
   return Boolean(expected) && request.headers.get("authorization") === `Bearer ${expected}`;
@@ -417,10 +459,26 @@ async function applyFeedback(request, env) {
 }
 
 export default {
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(
+      dispatchGitHubWorkflow(env, {
+        scheduledTime: controller.scheduledTime,
+      }).then((result) => {
+        console.log(JSON.stringify({ event: "github_dispatch", ...result }));
+      }),
+    );
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
       return jsonResponse({ ok: true, service: "fund-monitor-feedback" });
+    }
+    if (url.pathname === "/cron/dispatch") {
+      if (!authorized(request, env)) return jsonResponse({ error: "unauthorized" }, 401);
+      if (request.method !== "POST") return jsonResponse({ error: "method not allowed" }, 405);
+      const result = await dispatchGitHubWorkflow(env, { scheduledTime: Date.now() });
+      return jsonResponse(result, result.ok ? 200 : 502);
     }
     if (url.pathname === "/state") {
       if (!authorized(request, env)) return jsonResponse({ error: "unauthorized" }, 401);
@@ -469,6 +527,7 @@ export {
   applyFeedback,
   chinaDate,
   defaultState,
+  dispatchGitHubWorkflow,
   feedbackPage,
   verifyFeedbackToken,
 };

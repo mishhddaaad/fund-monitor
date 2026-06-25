@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import worker from "./src/index.js";
+import worker, { dispatchGitHubWorkflow } from "./src/index.js";
 
 class MemoryKV {
   constructor() {
@@ -70,6 +70,34 @@ test("state API requires bearer token", async () => {
   const env = await envWithState(pendingState);
   const response = await worker.fetch(new Request("https://example.com/state"), env);
   assert.equal(response.status, 401);
+});
+
+test("github dispatch skips when credentials are missing", async () => {
+  const result = await dispatchGitHubWorkflow({});
+  assert.equal(result.ok, false);
+  assert.equal(result.skipped, true);
+});
+
+test("github dispatch posts repository_dispatch", async () => {
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, options });
+    return new Response(null, { status: 204 });
+  };
+  try {
+    const result = await dispatchGitHubWorkflow({
+      GITHUB_REPOSITORY: "owner/repo",
+      GITHUB_DISPATCH_TOKEN: "token",
+    });
+    assert.equal(result.ok, true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, "https://api.github.com/repos/owner/repo/dispatches");
+    assert.equal(calls[0].options.method, "POST");
+    assert.equal(JSON.parse(calls[0].options.body).event_type, "fund-monitor-cron");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("confirm is the only action that increases holdings", async () => {

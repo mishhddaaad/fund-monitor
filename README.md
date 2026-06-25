@@ -19,8 +19,8 @@
 - 达到收益观察线后跟踪高点，回撤指定比例时提醒止盈。
 - 自动识别陈旧行情，节假日不误触发。
 - PushPlus 个人微信和企业微信通知。
-- GitHub Actions 云端定时运行，电脑无需开机。
-- Cloudflare Worker 手机操作面板。
+- GitHub Actions 云端运行，电脑无需开机。
+- Cloudflare Worker 手机操作面板，并可用 Cloudflare Cron 作为更可靠的外部定时器。
 - HMAC 签名反馈链接、Bearer 状态 API 和自动化测试。
 
 ## 工作方式
@@ -144,8 +144,11 @@ cp wrangler.example.toml wrangler.toml
 ```bash
 npx wrangler secret put STATE_API_TOKEN
 npx wrangler secret put FEEDBACK_SIGNING_SECRET
+npx wrangler secret put GITHUB_DISPATCH_TOKEN
 npx wrangler deploy
 ```
+
+`GITHUB_DISPATCH_TOKEN` 用于让 Cloudflare Cron 触发私有 Fork 的 GitHub Actions。建议使用只授予目标仓库 Actions/Contents 所需权限的 fine-grained token，并把 `wrangler.toml` 中的 `GITHUB_REPOSITORY` 改成你的私有 Fork，例如 `your-name/fund-monitor-private`。
 
 把相同的值写入 GitHub Actions Secrets，并补充部署地址：
 
@@ -162,7 +165,7 @@ npx wrangler deploy
 
 仓库包含两个工作流：
 
-- `4%定投法每日监控`：默认工作日北京时间 14:25、14:40、14:50 尝试运行。GitHub 定时任务可能延迟或被丢弃，多时点触发用于提高可靠性；普通“无需操作”通知一天只发送一次。若定时任务实际运行晚于 15:05，默认跳过普通买入/卖出/等待提醒，避免盘后误提醒。
+- `4%定投法每日监控`：默认工作日北京时间 14:25、14:40、14:50 尝试运行。GitHub 自带 schedule 和 Cloudflare Cron 都可以触发同一个工作流；普通“无需操作”通知一天只发送一次。若自动任务实际运行晚于 15:05，默认跳过普通买入/卖出/等待提醒，避免盘后误提醒。
 - `手动更新基金状态`：用于补录、修正、暂停或恢复提醒。
 
 在 `Settings → Secrets and variables → Actions → Variables` 新建：
@@ -171,7 +174,7 @@ npx wrangler deploy
 
 未设置该变量时，定时任务保持关闭；手动触发仍可用于测试。
 
-GitHub 定时任务可能延迟，它不是精确定时交易系统。可以通过 Actions 变量 `LATEST_SCHEDULE_PUSH_TIME=15:05` 调整盘后提醒安全闸；留空则不启用该闸门。
+GitHub 定时任务可能延迟或被丢弃，它不是精确定时交易系统。部署 Cloudflare Cron 后，Worker 会通过 `repository_dispatch` 额外叫醒 GitHub Actions。可以通过 Actions 变量 `LATEST_SCHEDULE_PUSH_TIME=15:05` 调整盘后提醒安全闸；留空则不启用该闸门。
 
 ## 本机运行
 

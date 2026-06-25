@@ -6,6 +6,8 @@ on:
   schedule:
     - cron: "25,40,50 6 * * 1-5"
   workflow_dispatch:
+  repository_dispatch:
+    types: [fund-monitor-cron]
 
 permissions:
   contents: write

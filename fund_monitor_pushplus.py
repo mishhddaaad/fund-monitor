@@ -22,6 +22,7 @@ from fund_monitor_core import (
 
 PUSHPLUS_TOKEN = os.environ.get("PUSHPLUS_TOKEN", "").strip()
 DEFAULT_LATEST_SCHEDULE_PUSH_TIME = time(15, 5)
+AUTOMATED_EVENTS = {"schedule", "repository_dispatch"}
 
 
 def _parse_hhmm(value: str) -> time:
@@ -30,7 +31,7 @@ def _parse_hhmm(value: str) -> time:
 
 
 def is_late_scheduled_run() -> bool:
-    if os.environ.get("GITHUB_EVENT_NAME") != "schedule":
+    if os.environ.get("GITHUB_EVENT_NAME") not in AUTOMATED_EVENTS:
         return False
 
     configured = os.environ.get("LATEST_SCHEDULE_PUSH_TIME", "15:05").strip()
@@ -55,7 +56,7 @@ def should_send_notification(results: list[dict], states: dict) -> bool:
 
 
 def notification_skip_reason(results: list[dict], states: dict) -> str | None:
-    if os.environ.get("GITHUB_EVENT_NAME") != "schedule":
+    if os.environ.get("GITHUB_EVENT_NAME") not in AUTOMATED_EVENTS:
         return None
     if is_late_scheduled_run() and not has_runtime_error(results):
         return "[??] ??????????? 15:05?????????????????"
