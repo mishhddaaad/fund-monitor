@@ -12,18 +12,6 @@
     "sell_drawdown_pct": 4.0
   },
   {
-    "fund_code": "003376",
-    "fund_name": "广发中债7-10年期国开行债券指数A",
-    "etf_market": "sh",
-    "etf_code": "019796",
-    "initial_etf_ref_price": 1.0,
-    "total_shares": 799.89,
-    "trigger_pct": 4.0,
-    "enable_sell_signal": true,
-    "sell_profit_trigger_pct": 15.0,
-    "sell_drawdown_pct": 4.0
-  },
-  {
     "fund_code": "001051",
     "fund_name": "华夏上证50ETF联接A",
     "etf_market": "sh",
@@ -52,7 +40,7 @@
     "fund_name": "华安黄金ETF联接A",
     "etf_market": "sh",
     "etf_code": "518880",
-    "initial_etf_ref_price": 4.2,
+    "initial_etf_ref_price": 8.5,
     "total_shares": 198.69,
     "trigger_pct": 4.0,
     "enable_sell_signal": true,
