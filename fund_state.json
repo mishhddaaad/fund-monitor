@@ -119,7 +119,14 @@
     "sell_history": [],
     "total_shares_bought": 0,
     "total_shares_sold": 0,
-    "pending_signal": null,
+    "pending_signal": {
+      "id": "e8793363bb5840728c5540236ff80d9b",
+      "date": "2026-07-28",
+      "etf_price": 2.068,
+      "anchor_etf_price": 2.169,
+      "drop_pct": -4.6565,
+      "suggested_share_no": 1
+    },
     "paused": false,
     "snooze_until": null,
     "skip_buy_below_price": null,
