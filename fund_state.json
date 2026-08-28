@@ -19,7 +19,7 @@
     "pending_sell_signal": null,
     "sell_alert_paused": false,
     "sell_snooze_until": null,
-    "last_status_push_date": "2026-08-28"
+    "last_status_push_date": "2026-08-29"
   },
   "001051": {
     "anchor_etf_price": 3.009,
@@ -41,7 +41,7 @@
     "pending_sell_signal": null,
     "sell_alert_paused": false,
     "sell_snooze_until": null,
-    "last_status_push_date": "2026-08-28"
+    "last_status_push_date": "2026-08-29"
   },
   "009051": {
     "anchor_etf_price": 1.48,
@@ -63,7 +63,7 @@
     "pending_sell_signal": null,
     "sell_alert_paused": false,
     "sell_snooze_until": null,
-    "last_status_push_date": "2026-08-28"
+    "last_status_push_date": "2026-08-29"
   },
   "000216": {
     "anchor_etf_price": 8.589,
@@ -85,7 +85,7 @@
     "pending_sell_signal": null,
     "sell_alert_paused": false,
     "sell_snooze_until": null,
-    "last_status_push_date": "2026-08-28"
+    "last_status_push_date": "2026-08-29"
   },
   "017641": {
     "anchor_etf_price": 2.528,
@@ -107,7 +107,7 @@
     "pending_sell_signal": null,
     "sell_alert_paused": false,
     "sell_snooze_until": null,
-    "last_status_push_date": "2026-08-28"
+    "last_status_push_date": "2026-08-29"
   },
   "019172": {
     "anchor_etf_price": 2.169,
@@ -129,6 +129,6 @@
     "pending_sell_signal": null,
     "sell_alert_paused": false,
     "sell_snooze_until": null,
-    "last_status_push_date": "2026-08-28"
+    "last_status_push_date": "2026-08-29"
   }
 }
