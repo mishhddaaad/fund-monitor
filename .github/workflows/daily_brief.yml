@@ -1,0 +1,26 @@
+name: 每日收报
+
+on:
+  # 北京时间 15:35 工作日（A股收盘后）
+  schedule:
+    - cron: "35 7 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  daily_brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: 拉取代码（含 fund_state.json 信号状态）
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 运行每日收报
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+        run: python daily_brief.py
