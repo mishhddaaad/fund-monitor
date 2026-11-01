@@ -165,25 +165,46 @@ def load_pending_signals():
         return {}
     with open("fund_state.json") as f:
         state = json.load(f)
-    out = {}
+    buys, sells = {}, {}
     name_by_code = {c: (c, n) for c, n, _, _, _ in FUND_MAP}
     for code, s in state.items():
         if not isinstance(s, dict):
             continue
+        if s.get("pending_sell_signal"):
+            sells[code] = name_by_code.get(code, (code, code))
         if s.get("pending_signal"):
-            out[code] = name_by_code.get(code, (code, code))
-    return out
+            buys[code] = name_by_code.get(code, (code, code))
+    return buys, sells
 
 
-def build_plain_summary(quotes, pe_data, signals, crossings, watch):
-    """核心：把今天所有数据动态翻译成3-6句人话"""
+def build_plain_summary(quotes, pe_data, buys, sells, crossings, watch):
+    """核心：把今天所有数据动态翻译成3-6句人话。
+    卖出/止盈信号按严重程度分级置顶，措辞为"必须执行"。"""
     lines = []
 
-    # 1. 今天要不要操作
-    if signals:
-        names = "、".join(n for _, n in signals.values())
-        lines.append(f"① <b>有打折机会</b>：{names} 比你当初买入的价格跌了4%以上，等于打折促销。想捡便宜可以各补100-300元；不想动也完全没关系，等价格涨回去信号就自动消失。")
-    else:
+    # ── 0级：止盈/卖出信号 → 红色置顶，必须执行 ──
+    if sells:
+        names = "、".join(n for _, n in sells.values())
+        lines.append(f"🔴🔴 <b>【必须执行·止盈信号】{names} 达到止盈条件！</b><br/>"
+                     f"这是你规则里写死的动作：盈利已超15%且从高点回撤4%，<b>今天收盘前（15:00前）必须分批卖出锁定利润</b>。"
+                     f"不要等、不要幻想再涨、不要别人劝就不卖——止盈信号的唯一作用就是让你在贪心时保持清醒。"
+                     f"执行3331法：先卖30%，剩余分批。")
+
+    # ── 1级：PE>80% 止盈警惕 → 橙色，需要执行3331 ──
+    sell_warn = [n for n, d in pe_data.items() if d.get("pct") and d["pct"] > 80]
+    if sell_warn and not sells:
+        lines.append(f"🟠 <b>【需要执行·高估预警】{'、'.join(sell_warn)} 当前PE分位超80%。</b>"
+                     f"按你的规则：已进入止盈区，<b>有持仓的执行3331法分批卖出（先卖30%）</b>；"
+                     f"没持仓的绝对不要此时买入。")
+
+    # ── 2级：4%买入信号 → 蓝色，可选执行 ──
+    if buys:
+        names = "、".join(n for _, n in buys.values())
+        lines.append(f"🔵 <b>【可选执行·打折信号】{names} 比你买入价跌了4%以上。</b>"
+                     f"有闲钱可以各补100-300元；不想动也完全没关系，等价格涨回去信号就自动消失。")
+
+    # ── 无信号 ──
+    if not sells and not buys and not sell_warn:
         lines.append("① <b>今天啥也不用做</b>：没有打折信号，也没到该卖的时候，你的自动定投照常扣款就好。")
 
     # 2. 换挡警报翻译
@@ -230,11 +251,20 @@ def build_plain_summary(quotes, pe_data, signals, crossings, watch):
     return lines
 
 
-def build_report(quotes, pe_data, signals, crossings, watch):
+def build_report(quotes, pe_data, buys, sells, crossings, watch):
     cn = datetime.now(timezone(timedelta(hours=8)))
     title = f"📰 每日收报 {cn.strftime('%Y-%m-%d %A')}"
 
     b = [f"<h2>{html.escape(title)}</h2><hr/>"]
+
+    # ── 止盈/卖出红色警报置顶（最高优先级）──
+    if sells:
+        names = "、".join(n for _, n in sells.values())
+        b.append("<div style='background:#fdecea;border:2px solid #c0392b;padding:10px;border-radius:6px'>")
+        b.append(f"<b style='color:#c0392b;font-size:16px'>🔴🔴 必须执行 · 止盈信号：{names}</b><br/>"
+                 f"<span style='font-size:14px'>盈利已超15%且从高点回撤4%，规则要求：今天15:00前分批卖出，先卖30%（3331法）。"
+                 f"不要等、不要幻想再涨——止盈就是为了在贪心时保持清醒。</span>")
+        b.append("</div>")
 
     # ── 换挡警报置顶 ──
     if crossings:
@@ -245,7 +275,7 @@ def build_report(quotes, pe_data, signals, crossings, watch):
     # ── 白话解读（核心）──
     b.append("<h3>🗣️ 今天用大白话说</h3>")
     b.append("<div style='background:#f0f7ff;padding:10px;border-radius:6px;font-size:14px'>")
-    for line in build_plain_summary(quotes, pe_data, signals, crossings, watch):
+    for line in build_plain_summary(quotes, pe_data, buys, sells, crossings, watch):
         b.append(f"<p style='margin:6px 0'>{line}</p>")
     b.append("</div>")
 
@@ -319,22 +349,29 @@ def main():
     if pe_data:
         save_pe_state(pe_data)
 
-    signals = load_pending_signals()
-    if signals:
-        print(f"挂起信号: {[n for _, n in signals.values()]}")
+    buys, sells = load_pending_signals()
+    if sells:
+        print(f"🔴 止盈信号: {[n for _, n in sells.values()]}")
+    if buys:
+        print(f"🔵 打折信号: {[n for _, n in buys.values()]}")
 
-    title, content = build_report(quotes, pe_data, signals, crossings, watch)
+    title, content = build_report(quotes, pe_data, buys, sells, crossings, watch)
     send_pushplus(title, content)
 
     # 同步输出纯文本版（供飞书等渠道使用）
     with open("daily_brief_text.txt", "w") as f:
         f.write(f"{title}\n\n")
-        f.write(build_text_version(quotes, pe_data, signals, crossings, watch))
+        f.write(build_text_version(quotes, pe_data, buys, sells, crossings, watch))
 
 
-def build_text_version(quotes, pe_data, signals, crossings, watch):
+def build_text_version(quotes, pe_data, buys, sells, crossings, watch):
     """纯文本版（飞书推送用）：只保留白话+关键数据"""
     lines = []
+    if sells:
+        names = "、".join(n for _, n in sells.values())
+        lines.append(f"🔴🔴【必须执行·止盈信号】{names} 达到止盈条件：盈利超15%且从高点回撤4%")
+        lines.append("规则动作：今天15:00前分批卖出，先卖30%（3331法）。不要等、不要幻想再涨。")
+        lines.append("")
     if crossings:
         lines.append("🚦 换挡警报")
         for c in crossings:
@@ -343,7 +380,7 @@ def build_text_version(quotes, pe_data, signals, crossings, watch):
                          .replace("</span>", ""))
         lines.append("")
     lines.append("🗣️ 今天用大白话说")
-    for line in build_plain_summary(quotes, pe_data, signals, crossings, watch):
+    for line in build_plain_summary(quotes, pe_data, buys, sells, crossings, watch):
         clean = line.replace("<b>", "").replace("</b>", "")
         lines.append(clean)
     lines.append("")
