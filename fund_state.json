@@ -38,7 +38,14 @@
     "sell_history": [],
     "total_shares_bought": 0,
     "total_shares_sold": 0,
-    "pending_signal": null,
+    "pending_signal": {
+      "id": "5ac32089f4c949dfb630c1e12d2c071b",
+      "date": "2026-11-18",
+      "etf_price": 2.883,
+      "anchor_etf_price": 3.009,
+      "drop_pct": -4.1874,
+      "suggested_share_no": 1
+    },
     "paused": false,
     "snooze_until": null,
     "skip_buy_below_price": null,
@@ -155,7 +162,14 @@
     "sell_history": [],
     "total_shares_bought": 0,
     "total_shares_sold": 0,
-    "pending_signal": null,
+    "pending_signal": {
+      "id": "f2d9459efeda4956a5158bcabd3cae18",
+      "date": "2026-11-18",
+      "etf_price": 2.328,
+      "anchor_etf_price": 2.473,
+      "drop_pct": -5.8633,
+      "suggested_share_no": 1
+    },
     "paused": false,
     "snooze_until": null,
     "skip_buy_below_price": null,
